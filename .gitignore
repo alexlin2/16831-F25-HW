@@ -1,1 +1,4 @@
 hw3_test/
+*.pyc
+*.egg-info
+hw1/data
