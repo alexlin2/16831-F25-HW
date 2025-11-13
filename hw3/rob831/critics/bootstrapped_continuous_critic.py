@@ -73,18 +73,22 @@ class BootstrappedContinuousCritic(nn.Module, BaseCritic):
             returns:
                 training loss
         """
-        # TODO: Implement the pseudocode below: do the following (
-        # self.num_grad_steps_per_target_update * self.num_target_updates)
-        # times:
-        # every self.num_grad_steps_per_target_update steps (which includes the
-        # first step), recompute the target values by
-        #     a) calculating V(s') by querying the critic with next_ob_no
-        #     b) and computing the target values as r(s, a) + gamma * V(s')
-        # every time, update this critic using the observations and targets
-        #
-        # HINT: don't forget to use terminal_n to cut off the V(s') (ie set it
-        #       to 0) when a terminal state is reached
-        # HINT: make sure to squeeze the output of the critic_network to ensure
-        #       that its dimensions match the reward
+        ob_no = ptu.from_numpy(ob_no)
+        next_ob_no = ptu.from_numpy(next_ob_no)
+        reward_n = ptu.from_numpy(reward_n)
+        terminal_n = ptu.from_numpy(terminal_n)
+
+        for i in range(self.num_target_updates):
+            v_next = self(next_ob_no)
+            target = reward_n + self.gamma * v_next * (1 - terminal_n)
+            target = target.detach()
+
+            for _ in range(self.num_grad_steps_per_target_update):
+                v_pred = self(ob_no)
+                loss = self.loss(v_pred, target)
+
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
 
         return loss.item()
